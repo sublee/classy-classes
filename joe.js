@@ -1,7 +1,7 @@
 (function( $, window, undefined ) {
 
 window.JOE = Class.$extend({
-    /** JOE class for make element mapped object.
+    /** JOE(http://alankang.tistory.com/137) implement for Classy and jQuery.
 
     Define the "name" class.
 
@@ -252,6 +252,12 @@ window.JOE = Class.$extend({
                 if ( val === undefined ) {
                     return this.__data__[ prop ];
                 } else {
+                    var result = this[ prop ].$desc.setter.call( this, val );
+                    if ( result === false ) {
+                        return this;
+                    } else if ( result !== undefined ) {
+                        val = result;
+                    }
                     this.__data__[ prop ] = val;
                     this[ prop ].$set( this.$attached );
                     return this;
@@ -262,6 +268,7 @@ window.JOE = Class.$extend({
         for ( var prop in this.$map ) {
             desc = this.$map[ prop ],
             type = attr = undefined,
+            getter = setter = function() {},
             isArray = false;
             for ( var i = 1; i < desc.length; i++ ) {
                 if ( $.isFunction( desc[ i ] ) ) {
@@ -270,6 +277,9 @@ window.JOE = Class.$extend({
                 } else if ( $.isArray( desc[ i ] ) ) {
                     isArray = true;
                     type = desc[ i ][ 0 ];
+                } else if ( $.isPlainObject( desc[ i ] ) ) {
+                    getter = desc[ i ].get || getter;
+                    setter = desc[ i ].set || setter;
                 } else if ( typeof desc[ i ] === "string" ) {
                     attr = desc[ i ];
                 }
@@ -285,7 +295,9 @@ window.JOE = Class.$extend({
                 selector: selector,
                 attr: attr,
                 type: type,
-                isArray: isArray
+                isArray: isArray,
+                getter: getter,
+                setter: setter
             };
             this[ prop ].$select = $.proxy(function( elem ) {
                 var fn = this[ 0 ][ this[ 1 ] ];
