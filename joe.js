@@ -110,6 +110,15 @@ window.JOE = Class.$extend({
         >>> p.profile();
         heungsub.jpg
 
+    Replaces a name.
+
+        >>> p.name( Name({ first: "new", last: "name" }) );
+        [object Object]
+        >>> p.name().first();
+        new
+        >>> p.name().last();
+        name
+
     Custom method.
 
         >>> p.older();
@@ -192,6 +201,10 @@ window.JOE = Class.$extend({
         -9
         >>> family_elem.find( ".members .person:eq(1) .age" ).text();
         -9
+        >>> f.members( 0 ) instanceof Person;
+        true
+        >>> f.members( 0 ).name().first();
+        Yesol
 
     Remove an item
 
@@ -242,6 +255,32 @@ window.JOE = Class.$extend({
           <p><img class="profile" src="heungsub.jpg" /></p>
         </div>
 
+    Replace members
+
+        >>> f.members([
+        ...     Person({
+        ...         name: Name({ first: "1", last: "2" }),
+        ...         age: 3,
+        ...         progile: "4"
+        ...     }),
+        ...     Person({
+        ...         name: Name({ first: "5", last: "6" }),
+        ...         age: 7,
+        ...         progile: "8"
+        ...     })
+        ... ]);
+        [object Object]
+        >>> f.members().length;
+        2
+        >>> f.members()[ 0 ].age();
+        3
+        >>> f.members().add( p )
+        [object Object]
+        >>> f.members().length;
+        3
+        >>> f.members()[ 2 ].age();
+        21
+
     */
 
     /** Getter/Setter
@@ -284,7 +323,10 @@ window.JOE = Class.$extend({
         this.__data__ = data || {};
         var property = function( prop ) {
             return function( val ) {
-                if ( val === undefined ) {
+                var isInt = String( parseInt( val ) ) !== "NaN";
+                if ( isInt && this[ prop ].$desc.isArray ) {
+                    return this[ prop ]()[ val ];
+                } else if ( val === undefined ) {
                     var val = this.__data__[ prop ],
                         result = this[ prop ].$desc.getter.call( this, val );
                     if ( result !== false && result !== undefined ) {
@@ -297,6 +339,10 @@ window.JOE = Class.$extend({
                         return this;
                     } else if ( result !== undefined ) {
                         val = result;
+                    }
+                    if ( this[ prop ].$desc.isArray ) {
+                        val.add = this.__data__[ prop ].add,
+                        val.remove = this.__data__[ prop ].remove;
                     }
                     this.__data__[ prop ] = val;
                     this[ prop ].$set( this.$attached, val );
