@@ -243,6 +243,41 @@ window.JOE = Class.$extend({
         </div>
 
     */
+
+    /** Getter/Setter
+
+    Define a class
+
+        >>> var HasProperty = JOE.$extend({
+        ...     $map: {
+        ...         text: [null, "text", {
+        ...             get: function( val ) {
+        ...                 return "^" + val + "$";
+        ...             },
+        ...             set: function( val ) {
+        ...                 return val.replace( /^\^|\$$/g, "" );
+        ...             }
+        ...         }]
+        ...     }
+        ... });
+
+    Markups.
+
+        >>> var property_html = '<p class="has-property">TEST</p>';
+        >>> var property_elem = $( property_html );
+
+    Attach.
+
+        >>> var hp = HasProperty.from( property_elem );
+        >>> hp.text();
+        ^TEST$
+        >>> hp.text( "^HELLO$" );
+        [object Object]
+        >>> hp.text();
+        ^HELLO$
+        >>> property_elem.text();
+        HELLO
+    */
     $map: {},
     $attached: $(),
     __init__: function( data ) {
@@ -250,7 +285,12 @@ window.JOE = Class.$extend({
         var property = function( prop ) {
             return function( val ) {
                 if ( val === undefined ) {
-                    return this.__data__[ prop ];
+                    var val = this.__data__[ prop ],
+                        result = this[ prop ].$desc.getter.call( this, val );
+                    if ( result !== false && result !== undefined ) {
+                        val = result;
+                    }
+                    return val;
                 } else {
                     var result = this[ prop ].$desc.setter.call( this, val );
                     if ( result === false ) {
@@ -259,7 +299,7 @@ window.JOE = Class.$extend({
                         val = result;
                     }
                     this.__data__[ prop ] = val;
-                    this[ prop ].$set( this.$attached );
+                    this[ prop ].$set( this.$attached, val );
                     return this;
                 }
             };
@@ -344,8 +384,8 @@ window.JOE = Class.$extend({
                     return cast( elem );
                 }
             }, [ this, prop ] );
-            this[ prop ].$set = $.proxy(function( elem ) {
-                var fn = this[ 0 ][ this[ 1 ] ], val = fn.call( this[ 0 ] );
+            this[ prop ].$set = $.proxy(function( elem, val ) {
+                var fn = this[ 0 ][ this[ 1 ] ];
                 elem = fn.$select( elem );
                 if ( JOE.isAttr( fn.$desc.attr ) ) {
                     return elem.attr( fn.$desc.attr, val );
@@ -358,7 +398,7 @@ window.JOE = Class.$extend({
     attach: function( elem ) {
         this.$attached = this.$attached.add( elem );
         for ( var prop in this.$map ) {
-            this[ prop ].$set( this.$attached );
+            this[ prop ].$set( this.$attached, this.__data__[ prop ] );
         }
         return this;
     },
