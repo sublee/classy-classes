@@ -29,6 +29,9 @@ window.JOE = Class.$extend({
     Make an instance from markup.
 
         >>> var n = Name.from( name_elem );
+        >>> console.log( name_elem.data( "joe" ) );
+        >>> name_elem.data( "joe" ) === n;
+        true
         >>> n.first();
         Heungsub
         >>> n.last();
@@ -45,6 +48,8 @@ window.JOE = Class.$extend({
         >>> var name_elem2 = $( name_html );
         >>> n.attach( name_elem2 );
         [object Object]
+        >>> name_elem2.data( "joe" ) === n;
+        true
         >>> n.$attached.length;
         2
         >>> n.last( "Super" );
@@ -109,6 +114,13 @@ window.JOE = Class.$extend({
         20
         >>> p.profile();
         heungsub.jpg
+
+    Also the object is in the element storage.
+
+        >>> person_elem.data( "joe" ) === p;
+        true
+        >>> person_elem.find( ".name" ).data( "joe" ) === p.name();
+        true
 
     Replaces a name.
 
@@ -441,10 +453,15 @@ window.JOE = Class.$extend({
             }, [ this, prop ] );
         }
     },
-    attach: function( elem ) {
+    attach: function( elem, reversed ) {
         this.$attached = this.$attached.add( elem );
+        this.$attached.data( "joe", this );
         for ( var prop in this.$map ) {
-            this[ prop ].$set( this.$attached, this.__data__[ prop ] );
+            if ( reversed ) {
+                this.__data__[ prop ] = this[ prop ].$get( elem );
+            } else {
+                this[ prop ].$set( this.$attached, this.__data__[ prop ] );
+            }
         }
         return this;
     },
@@ -483,11 +500,7 @@ window.JOE = Class.$extend({
     __classvars__: {
         from: function( elem ) {
             var obj = new this();
-            elem = $( elem );
-            obj.$attached = obj.$attached.add( elem );
-            for ( var prop in obj.$map ) {
-                obj.__data__[ prop ] = obj[ prop ].$get( elem );
-            }
+            obj.attach( elem, true );
             return obj;
         },
         isAttr: function( attr ) {
